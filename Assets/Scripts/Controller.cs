@@ -108,6 +108,8 @@ public class Controller : MonoBehaviour
         if( currentTexture != null )
             Destroy(currentTexture);
 
+        timelineSlider.value = (float)currentPhoto;
+
         string photoPath = Path.Combine(folder, photoData.photoData[currentPhoto].photoPath);
         currentTexture = (new Texture2D(1, 1, TextureFormat.RGBA32, false));
         currentTexture.LoadImage(File.ReadAllBytes(photoPath));
@@ -218,6 +220,10 @@ public class Controller : MonoBehaviour
         foreach (var photoPath in Directory.EnumerateFiles(folder))
         {
             PhotoData newPhotoData = null;
+
+            string extention = Path.GetExtension(photoPath);
+            if (!(extention == ".jpg" || extention == ".png" || extention == ".jpeg"))
+                continue;
 
             string dataName = Path.GetFileNameWithoutExtension(photoPath) + ".key";
             string dataPath = Path.Combine(folder, dataName);

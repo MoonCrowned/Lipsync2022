@@ -70,7 +70,7 @@ public class Controller : MonoBehaviour
             var videoLength = (float)photoData.photoData.Count/(float)playFps;
             
             Debug.Log(videoLength+" "+audioSource.clip.length);
-            audioSource.pitch = 2f * audioSource.clip.length / videoLength;
+            audioSource.pitch = audioSource.clip.length / videoLength;
         }
         
     }
@@ -246,6 +246,8 @@ public class Controller : MonoBehaviour
                     int leftKey = -1;
                     for (int i = currentPhoto - 1; i >= currentPhoto - lerpDistance; i--)
                     {
+                        if (i < 0 || i >= photoData.photoData.Count-1)
+                            continue;
                         if (photoData.photoData[i].keyData[k].isKey)
                         {
                             leftKey = i;
@@ -258,6 +260,8 @@ public class Controller : MonoBehaviour
                     int rightKey = -1;
                     for (int i = currentPhoto + 1; i < currentPhoto + lerpDistance; i++)
                     {
+                        if (i < 0 || i >= photoData.photoData.Count-1)
+                            continue;
                         if (photoData.photoData[i].keyData[k].isKey)
                         {
                             rightKey = i;
@@ -391,12 +395,16 @@ public class Controller : MonoBehaviour
 
     void LerpKeysAroundKey(int keyNum, int lineNum)
     {
+
+        if (keyNum < 0 || keyNum >= photoData.photoData.Count - 1)
+            return;
+        
         // Smooth all not keys around this key
-        int nearestLeftKey = keyNum - lerpDistance;
+        int nearestLeftKey = Mathf.Clamp(keyNum - lerpDistance, 0, photoData.photoData.Count-1);
         for (int i = keyNum - 1; i >= keyNum - lerpDistance; i--)
         {
-            if (i < 0)
-                break;
+            if (i < 0 || i >= photoData.photoData.Count-1)
+                continue;
             if (photoData.photoData[i].keyData[lineNum].isKey)
             {
                 nearestLeftKey = i;
@@ -409,6 +417,8 @@ public class Controller : MonoBehaviour
         {
             for (int i = nearestLeftKey + 1; i < keyNum; i++)
             {
+                if (i < 0 || i >= photoData.photoData.Count-1)
+                    continue;
                 float alpha = (float)(i - nearestLeftKey) / (float)(keyNum - nearestLeftKey);
                 photoData.photoData[i].keyData[lineNum].key = Mathf.Lerp(photoData.photoData[nearestLeftKey].keyData[lineNum].key,
                     photoData.photoData[keyNum].keyData[lineNum].key, alpha);
@@ -416,11 +426,11 @@ public class Controller : MonoBehaviour
         }
 
         // Smooth all not keys around this key
-        int nearestRightKey = keyNum + lerpDistance;
+        int nearestRightKey = Mathf.Clamp(keyNum + lerpDistance, 0, photoData.photoData.Count-1);
         for (int i = keyNum + 1; i <= keyNum + lerpDistance; i++)
         {
-            if (i >= photoData.photoData.Count)
-                break;
+            if (i < 0 || i >= photoData.photoData.Count-1)
+                continue;
             if (photoData.photoData[i].keyData[lineNum].isKey)
             {
                 nearestRightKey = i;
@@ -433,6 +443,8 @@ public class Controller : MonoBehaviour
         {
             for (int i = keyNum + 1; i <= nearestRightKey - 1; i++)
             {
+                if (i < 0 || i >= photoData.photoData.Count-1)
+                    continue;
                 float alpha = (float)(nearestRightKey - i) / (float)(nearestRightKey - keyNum);
                 photoData.photoData[i].keyData[lineNum].key = Mathf.Lerp(photoData.photoData[keyNum].keyData[lineNum].key,
                     photoData.photoData[nearestRightKey].keyData[lineNum].key, 1f - alpha);

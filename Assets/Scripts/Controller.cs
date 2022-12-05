@@ -8,6 +8,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 public class Controller : MonoBehaviour
@@ -42,6 +43,9 @@ public class Controller : MonoBehaviour
     public int playFps;
     private bool isPlaying;
     private float playingLastFrameTime;
+    
+
+    public AudioSource audioSource;
 
 
     private void Awake()
@@ -50,11 +54,25 @@ public class Controller : MonoBehaviour
         saveButton.onClick.AddListener(Save);
         playFpsInput.onEndEdit.AddListener((s) =>
         {
-            float f = (float)playFps;
-            float.TryParse(s, out f);
-            playFps = (int)f;
+            SetFps();
         });
         playButton.onClick.AddListener(() => OnPlayPressed());
+    }
+
+    void SetFps()
+    {
+        float f = (float)playFps;
+        float.TryParse(playFpsInput.text, out f);
+        playFps = (int)f;
+
+        if (audioSource.clip != null)
+        {
+            var videoLength = (float)photoData.photoData.Count/(float)playFps;
+            
+            Debug.Log(videoLength+" "+audioSource.clip.length);
+            audioSource.pitch = 2f * audioSource.clip.length / videoLength;
+        }
+        
     }
 
     private void OnPlayPressed()
@@ -62,11 +80,18 @@ public class Controller : MonoBehaviour
         if (isPlaying)
         {
             isPlaying = false;
+            audioSource.Stop();
         }
         else
         {
             isPlaying = true;
             playingLastFrameTime = Time.time;
+            if (audioSource.clip != null)
+            {
+                float audioNormalizedTime = (float)currentPhoto / (float)(photoData.photoData.Count - 1);
+                audioSource.Play();
+                audioSource.time = audioNormalizedTime * audioSource.clip.length;
+            }
         }
     }
 
@@ -123,8 +148,8 @@ public class Controller : MonoBehaviour
             while (Time.time - playingLastFrameTime > 1f / (float)playFps)
             {
                 NextPhoto();
-                if (currentPhoto >= photoData.photoData.Count-1)
-                    isPlaying = false;
+                if (currentPhoto >= photoData.photoData.Count - 1)
+                    OnPlayPressed();
                 playingLastFrameTime += 1f / (float)playFps;
             }
         }
@@ -154,7 +179,8 @@ public class Controller : MonoBehaviour
         if( currentTexture != null )
             Destroy(currentTexture);
 
-        timelineSlider.value = (float)currentPhoto;
+        timelineSlider.SetValueWithoutNotify((float)currentPhoto);
+        //timelineSlider.value = (float)currentPhoto;
         frameNumberText.text = "" + currentPhoto;
 
         string photoPath = Path.Combine(folder, photoData.photoData[currentPhoto].photoPath);
@@ -173,7 +199,7 @@ public class Controller : MonoBehaviour
         
     }
 
-    void LoadFolderData(string folder, GameObject prefab)
+    async void LoadFolderData(string folder, GameObject prefab)
     {
         photoData.photoData = new List<PhotoData>();
         
@@ -277,6 +303,7 @@ public class Controller : MonoBehaviour
                 PhotoData newPhotoData = null;
 
                 string extention = Path.GetExtension(photoPath);
+ 
                 if (!(extention == ".jpg" || extention == ".png" || extention == ".jpeg"))
                     continue;
 
@@ -314,14 +341,50 @@ public class Controller : MonoBehaviour
             }
         }
 
+        foreach (var photoPath in Directory.EnumerateFiles(folder))
+        {
+            string extention = Path.GetExtension(photoPath);
+
+            if (extention == ".wav")
+            {
+                Debug.Log("Loading audio");
+                string audioUrl = "file://" + photoPath;
+                using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(audioUrl, AudioType.WAV))
+                {
+                    var request = www.SendWebRequest();
+                    while (!request.isDone)
+                        Task.Delay(50);
+
+                    if (www.result == UnityWebRequest.Result.ConnectionError)
+                    {
+                        Debug.Log(www.error);
+                    }
+                    else
+                    {
+                        Debug.Log("Loaded audio");
+                        AudioClip myClip = DownloadHandlerAudioClip.GetContent(www);
+                        audioSource.clip = myClip;
+                    }
+                }
+            }
+        }
+
         timelineSlider.minValue = 0;
         timelineSlider.maxValue = photoData.photoData.Count - 1;
         timelineSlider.onValueChanged.AddListener((f) =>
         {
             currentPhoto = (int)f;
+            if (audioSource.clip != null)
+            {
+                float audioNormalizedTime = (float)currentPhoto / (float)(photoData.photoData.Count - 1);
+                audioSource.time = audioNormalizedTime * audioSource.clip.length;
+            }
+
             SetCurrentPhoto();
         });
         UpdateTimelineTex();
+
+        SetFps();
 
 
     }

@@ -19,7 +19,7 @@ public class Controller : MonoBehaviour
     public GameObject modelPrefab;
     public Transform modelHolder;
     GameObject modelGo;
-    SkinnedMeshRenderer skinnedMeshRenderer;
+    SkinnedMeshRenderer[] skinnedMeshRenderers;
     public RawImage rawImage;
     public AspectRatioFitter rawImageAspectRatioFitter;
     public RawImage timelineImage;
@@ -198,7 +198,8 @@ public class Controller : MonoBehaviour
 
         for (int k = 0; k < photoData.photoData[currentPhoto].keyData.Count; k++)
         {
-            skinnedMeshRenderer.SetBlendShapeWeight(k, photoData.photoData[currentPhoto].keyData[k].key);
+            foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                skinnedMeshRenderer.SetBlendShapeWeight(k, photoData.photoData[currentPhoto].keyData[k].key);
             weightSliders[k].Set(photoData.photoData[currentPhoto].keyData[k].isKey,
                 photoData.photoData[currentPhoto].keyData[k].key);
         }
@@ -215,7 +216,7 @@ public class Controller : MonoBehaviour
         modelGo.transform.localPosition = Vector3.zero;
         modelGo.transform.localRotation = Quaternion.identity;
         modelGo.transform.localScale = Vector3.one;
-        skinnedMeshRenderer = modelGo.GetComponentInChildren<SkinnedMeshRenderer>();
+        skinnedMeshRenderers = modelGo.GetComponentsInChildren<SkinnedMeshRenderer>();
 
         if (weightSliders == null)
             weightSliders = new List<WeightSlider>();
@@ -224,15 +225,15 @@ public class Controller : MonoBehaviour
         weightSliders.Clear();
 
         //for (int k = 0; k < skinnedMeshRenderer.sharedMesh.blendShapeCount; k++)
-        foreach(var k in Enumerable.Range(0, skinnedMeshRenderer.sharedMesh.blendShapeCount))
+        foreach(var k in Enumerable.Range(0, skinnedMeshRenderers[0].sharedMesh.blendShapeCount))
         {
             var weightSlider = (Instantiate(weightSliderPrefab, weightSliderPrefab.transform.parent))
                 .GetComponent<WeightSlider>();
             weightSlider.gameObject.SetActive(true);
-            weightSlider.Init(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(k), 0f,
+            weightSlider.Init(skinnedMeshRenderers[0].sharedMesh.GetBlendShapeName(k), 0f,
                 (f) =>
             {
-                skinnedMeshRenderer.SetBlendShapeWeight(k, f);
+                skinnedMeshRenderers[0].SetBlendShapeWeight(k, f);
                 weightSlider.Set(true, f);
                 photoData.photoData[currentPhoto].keyData[k].isKey = true;
                 photoData.photoData[currentPhoto].keyData[k].key = f;
@@ -284,17 +285,19 @@ public class Controller : MonoBehaviour
 
             }, () =>
             {
-                for (int i = 0; i < skinnedMeshRenderer.sharedMesh.blendShapeCount; i++)
+                for (int i = 0; i < skinnedMeshRenderers[0].sharedMesh.blendShapeCount; i++)
                 {
                     weightSliders[i].Set(false, i==k?100f:0f );
-                    skinnedMeshRenderer.SetBlendShapeWeight(i, i==k?100f:0f);
+                    foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                        skinnedMeshRenderer.SetBlendShapeWeight(i, i==k?100f:0f);
                 }
             }, () => 
             {
-                for (int i = 0; i < skinnedMeshRenderer.sharedMesh.blendShapeCount; i++)
+                for (int i = 0; i < skinnedMeshRenderers[0].sharedMesh.blendShapeCount; i++)
                 {
                     weightSliders[i].Set(photoData.photoData[currentPhoto].keyData[i].isKey, photoData.photoData[currentPhoto].keyData[i].key );
-                    skinnedMeshRenderer.SetBlendShapeWeight(i, photoData.photoData[currentPhoto].keyData[i].key);
+                    foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                        skinnedMeshRenderer.SetBlendShapeWeight(i, photoData.photoData[currentPhoto].keyData[i].key);
                 }
             });
             weightSliders.Add(weightSlider);
@@ -333,9 +336,9 @@ public class Controller : MonoBehaviour
                     newPhotoData.keyData = new List<KeyData>();
                 }
 
-                for (int k = 0; k < skinnedMeshRenderer.sharedMesh.blendShapeCount; k++)
+                for (int k = 0; k < skinnedMeshRenderers[0].sharedMesh.blendShapeCount; k++)
                 {
-                    string blendshapeName = skinnedMeshRenderer.sharedMesh.GetBlendShapeName(k);
+                    string blendshapeName = skinnedMeshRenderers[0].sharedMesh.GetBlendShapeName(k);
                     if (newPhotoData.keyData.FirstOrDefault(key => key.name == blendshapeName) == null)
                     {
                         var keyData = new KeyData();

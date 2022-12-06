@@ -119,7 +119,7 @@ public class Controller : MonoBehaviour
         
         Debug.Log("Exporting maxscript");
 
-        string maxScriptPath = Path.Combine(folder, Path.GetFileName(folder) + "_maxscript.mc");
+        string maxScriptPath = Path.Combine(folder, Path.GetFileName(folder) + "_maxscript.ms");
         GenerateMaxScriptWithMorphs(maxScriptPath, photoData);
         
         Debug.Log("Saved");

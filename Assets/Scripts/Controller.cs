@@ -116,6 +116,12 @@ public class Controller : MonoBehaviour
                 Debug.Log((100f*(float)numSaved/(float)photoData.photoData.Count).ToString("0.0")+"%");
             }
         }*/
+        
+        Debug.Log("Exporting maxscript");
+
+        string maxScriptPath = Path.Combine(folder, Path.GetFileName(folder) + "_maxscript.mc");
+        GenerateMaxScriptWithMorphs(maxScriptPath, photoData);
+        
         Debug.Log("Saved");
     }
 
@@ -485,6 +491,63 @@ public class Controller : MonoBehaviour
         timelineTex.SetPixels(timelineTexColors);
         timelineTex.Apply();
         
+    }
+
+    public static void GenerateMaxScriptWithMorphs(string path, AllPhotosData photosData)
+    {
+        string maxScriptOut = "morphIndex = #(";
+        for (int k = 0; k < photosData.photoData[0].keyData.Count; k++)
+        {
+            if (k > 0) maxScriptOut += ",";
+            maxScriptOut += "" + (k + 1);
+        }
+        maxScriptOut += ")\nfor i = 1 to 100 do\n(\n\tif (WM3_MC_HasData $.morpher i) == true then\n\t(\n";
+        for (int k = 0; k < photosData.photoData[0].keyData.Count; k++)
+        {
+            maxScriptOut += "\t\tif (WM3_MC_GetName $.morpher i) == \"" + photosData.photoData[0].keyData[k].name + "\" then morphIndex[" + (k + 1) + "] = i\n";
+        }
+        maxScriptOut += "\t)\n)\n\n";
+
+        maxScriptOut += "animate on\n(\n";
+        
+        for (int k = 0; k < photosData.photoData.Count; k++)
+        {
+            for (int i = 0; i < photosData.photoData[k].keyData.Count; i++)
+            {
+
+                bool needWrite = false;
+
+                /*if (photosData.photoData[k].keyData[i].key > 0f)
+                    needWrite = true;
+                else
+                {
+                    if (k == 0 || k == photosData.photoData.Count - 1)
+                        needWrite = true;
+                    else
+                    {
+                        if (photosData.photoData[k - 1].keyData[i].key > 0f ||
+                            photosData.photoData[k + 1].keyData[i].key > 0f)
+                            needWrite = true;
+                    }
+                }*/
+
+                if (photosData.photoData[k].keyData[i].isKey)
+                    needWrite = true;
+                else if( photosData.photoData[k].keyData[i].key < 0.1f )
+                {
+                    if (k > 0 && photosData.photoData[k - 1].keyData[i].key > 0.1f)
+                        needWrite = true;
+                    if (k < (photosData.photoData.Count-1) && photosData.photoData[k + 1].keyData[i].key > 0.1f)
+                        needWrite = true;
+                }
+                
+                if( needWrite )
+                    maxScriptOut += "\tat time " + (k * 1) + " WM3_MC_SetValue $.morpher morphIndex[" + (i + 1) + "] " + Mathf.RoundToInt(photosData.photoData[k].keyData[i].key) + ".0\n";
+            }
+        }
+        
+        maxScriptOut += ")";
+        System.IO.File.WriteAllText(path, maxScriptOut);
     }
 
 }

@@ -69,7 +69,7 @@ public class Controller : MonoBehaviour
         {
             var videoLength = (float)photoData.photoData.Count/(float)playFps;
             
-            Debug.Log(videoLength+" "+audioSource.clip.length);
+            //Debug.Log(videoLength+" "+audioSource.clip.length);
             audioSource.pitch = audioSource.clip.length / videoLength;
         }
         
@@ -511,6 +511,8 @@ public class Controller : MonoBehaviour
         }
         maxScriptOut += "\t)\n)\n\n";
 
+        maxScriptOut += "n = 0\n\n";
+
         maxScriptOut += "animate on\n(\n";
         
         for (int k = 0; k < photosData.photoData.Count; k++)
@@ -545,7 +547,7 @@ public class Controller : MonoBehaviour
                 }
                 
                 if( needWrite )
-                    maxScriptOut += "\tat time " + (k * 1) + " WM3_MC_SetValue $.morpher morphIndex[" + (i + 1) + "] " + Mathf.RoundToInt(photosData.photoData[k].keyData[i].key) + ".0\n";
+                    maxScriptOut += "\tat time( n+ " + (k * 1) + " ) WM3_MC_SetValue $.morpher morphIndex[" + (i + 1) + "] " + Mathf.RoundToInt(photosData.photoData[k].keyData[i].key) + ".0\n";
             }
         }
         

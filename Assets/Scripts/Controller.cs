@@ -261,6 +261,7 @@ public class Controller : MonoBehaviour
 
         string allDataPath = Path.Combine(folder, Path.GetFileName(folder)+".json");
         File.WriteAllText(allDataPath, JsonUtility.ToJson(photoData));
+        await Task.Delay(500);
         string allDataBackupPath = Path.Combine(folder, Path.GetFileName(folder)+".json_"+DateTime.Now.Ticks+".bkp");
         File.Copy(allDataPath, allDataBackupPath, true);
         

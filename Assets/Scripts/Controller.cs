@@ -22,11 +22,13 @@ public class Controller : MonoBehaviour
     SkinnedMeshRenderer[] skinnedMeshRenderers;
     public RawImage rawImage;
     public AspectRatioFitter rawImageAspectRatioFitter;
-    public RawImage timelineImage;
-    public Texture2D timelineTex;
-    private Color[] timelineTexColors;
+
+    public TimelineScript timeline;
+    //public RawImage timelineImage;
+    //public Texture2D timelineTex;
+    ///private Color[] timelineTexColors;
     public Button saveButton;
-    public Slider timelineSlider;
+    //public Slider timelineSlider;
     public int lerpDistance = 15;
 
     public TMP_Text frameNumberText;
@@ -57,6 +59,164 @@ public class Controller : MonoBehaviour
             SetFps();
         });
         playButton.onClick.AddListener(() => OnPlayPressed());
+        timeline.OnMoveSelection += OnMoveTimelineSelection;
+        timeline.OnCopy += OnTimelineCopy;
+        timeline.OnPaste += OnTimelinePaste;
+        timeline.OnDelete += OnDeleteTimelineSelection;
+    }
+
+    private void OnTimelinePaste(int pasteFrame)
+    {
+        if (copyBuffer == null)
+        {
+            Debug.Log("No copy made. Select area and press C");
+            return;
+        }
+
+        OnDeleteTimelineSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count);
+        
+        // Paste
+        for (int f = 0; f < copyBuffer.photoData.Count; f++)
+        {
+            for (int b = 0; b < copyBuffer.photoData[f].keyData.Count; b++)
+            {
+                if (copyBuffer.photoData[f].keyData[b].isKey)
+                {
+                    photoData.photoData[f + pasteFrame].keyData[b].isKey = copyBuffer.photoData[f].keyData[b].isKey;
+                    photoData.photoData[f + pasteFrame].keyData[b].key = copyBuffer.photoData[f].keyData[b].key;
+                }
+            }
+        }
+        
+        // Lerp
+        for (int f = 0; f < copyBuffer.photoData.Count; f++)
+        {
+            for (int b = 0; b < copyBuffer.photoData[f].keyData.Count; b++)
+            {
+                if (photoData.photoData[f+pasteFrame].keyData[b].isKey)
+                {
+                    LerpKeysAroundKey(f+pasteFrame, b);
+                }
+            }
+        }
+        
+        timeline.SetSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count);
+        
+        timeline.Redraw();
+    }
+
+    public void OnDeleteTimelineSelection(int f1, int f2)
+    {
+        if (f1 < 0 || f2 < 0 || f1 >= photoData.photoData.Count || f2 >= photoData.photoData.Count)
+            return;
+        if (f1 > f2)
+        {
+            int t = f2;
+            f2 = f1;
+            f2 = t;
+        }
+        
+        // Delete
+        for (int f = f1; f <= f2; f++)
+        {
+            for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+            {
+                if (photoData.photoData[f].keyData[b].isKey)
+                {
+                    TryToDeleteKey(f,b);
+                }
+            }
+        }
+        
+        timeline.Redraw();
+        
+    }
+
+    private AllPhotosData copyBuffer;
+    private void OnTimelineCopy(int f1, int f2)
+    {
+        if (f1 < 0 || f2 < 0 || f1 >= photoData.photoData.Count || f2 >= photoData.photoData.Count)
+            return;
+        if (f1 > f2)
+        {
+            int t = f2;
+            f2 = f1;
+            f2 = t;
+        }
+        copyBuffer = new AllPhotosData();
+        copyBuffer.photoData = new List<PhotoData>();
+        for (int f = f1; f <= f2; f++)
+        {
+            var newPhotoData = new PhotoData();
+            newPhotoData.keyData = new List<KeyData>();
+            for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+            {
+                var newKeyData = new KeyData();
+                newKeyData.isKey = photoData.photoData[f].keyData[b].isKey;
+                newKeyData.key = photoData.photoData[f].keyData[b].key;
+                newPhotoData.keyData.Add(newKeyData);
+            }
+            copyBuffer.photoData.Add(newPhotoData);
+        }
+        Debug.Log("Copied frames from "+f1+" to "+f2);
+    }
+
+    private void OnMoveTimelineSelection(int f1, int f2, int delta)
+    {
+        if (delta == 0)
+            return;
+        if (delta > 0)
+        {
+            for (int f = f2; f >= f1; f--)
+            {
+                for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+                {
+                    if (photoData.photoData[f].keyData[b].isKey)
+                    {
+                        photoData.photoData[f + delta].keyData[b].isKey = photoData.photoData[f].keyData[b].isKey;
+                        photoData.photoData[f + delta].keyData[b].key = photoData.photoData[f].keyData[b].key;
+                        TryToDeleteKey(f, b);
+                    }
+                }
+            }
+            for (int f = f2+delta; f >= f1+delta; f--)
+            {
+                for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+                {
+                    if (photoData.photoData[f].keyData[b].isKey)
+                    {
+                        LerpKeysAroundKey(f, b);
+                    }
+                }
+            }
+            timeline.Redraw();
+        }
+        else if (delta < 0)
+        {
+            for (int f = f1; f <= f2; f++)
+            {
+                for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+                {
+                    if (photoData.photoData[f].keyData[b].isKey)
+                    {
+                        photoData.photoData[f + delta].keyData[b].isKey = photoData.photoData[f].keyData[b].isKey;
+                        photoData.photoData[f + delta].keyData[b].key = photoData.photoData[f].keyData[b].key;
+                        TryToDeleteKey(f, b);
+                    }
+                }
+            }
+            for (int f = f1+delta; f <= f2+delta; f++)
+            {
+                for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
+                {
+                    if (photoData.photoData[f].keyData[b].isKey)
+                    {
+                        LerpKeysAroundKey(f, b);
+                    }
+                }
+            }
+            timeline.Redraw();
+        }
     }
 
     void SetFps()
@@ -101,6 +261,8 @@ public class Controller : MonoBehaviour
 
         string allDataPath = Path.Combine(folder, Path.GetFileName(folder)+".json");
         File.WriteAllText(allDataPath, JsonUtility.ToJson(photoData));
+        string allDataBackupPath = Path.Combine(folder, Path.GetFileName(folder)+".json_"+DateTime.Now.Ticks+".bkp");
+        File.Copy(allDataPath, allDataBackupPath, true);
         
         /*float timeStart = Time.time;
         int numSaved = 0;
@@ -128,6 +290,7 @@ public class Controller : MonoBehaviour
     private void Start()
     {
         folder = EditorUtility.OpenFolderPanel("Выберите папку с фото", null, null);
+        Debug.Log("Selected folder = "+folder);
         LoadFolderData(folder, modelPrefab);
 
         currentPhoto = 0;
@@ -138,9 +301,9 @@ public class Controller : MonoBehaviour
     {
         //if (Input.GetKey(KeyCode.Z))
         {
-            if (Input.GetKeyDown(KeyCode.Alpha2))
+            if (Input.GetKeyDown(KeyCode.LeftBracket))
                 NextPhoto();
-            if (Input.GetKeyDown(KeyCode.Alpha1))
+            if (Input.GetKeyDown(KeyCode.RightBracket))
                 PreviousPhoto();
         }
 
@@ -184,8 +347,15 @@ public class Controller : MonoBehaviour
         
         if( currentTexture != null )
             Destroy(currentTexture);
+        if (photoData == null)
+            return;
+        if (photoData.photoData == null)
+            return;
+        if (photoData.photoData.Count == 0)
+            return;
 
-        timelineSlider.SetValueWithoutNotify((float)currentPhoto);
+        timeline.Value = currentPhoto;
+        //timelineSlider.SetValueWithoutNotify((float)currentPhoto);
         //timelineSlider.value = (float)currentPhoto;
         frameNumberText.text = "" + currentPhoto;
 
@@ -240,48 +410,12 @@ public class Controller : MonoBehaviour
                 
                 LerpKeysAroundKey(currentPhoto, k);
 
-                UpdateTimelineTex();
+                //UpdateTimelineTex();
+                timeline.Redraw();
 
             }, () =>
             {
-                if (photoData.photoData[currentPhoto].keyData[k].isKey)
-                {
-                    photoData.photoData[currentPhoto].keyData[k].isKey = false;
-                    photoData.photoData[currentPhoto].keyData[k].key = 0f;
-                    weightSlider.Set(false);
-
-                    int leftKey = -1;
-                    for (int i = currentPhoto - 1; i >= currentPhoto - lerpDistance; i--)
-                    {
-                        if (i < 0 || i >= photoData.photoData.Count-1)
-                            continue;
-                        if (photoData.photoData[i].keyData[k].isKey)
-                        {
-                            leftKey = i;
-                            break;
-                        }
-
-                        photoData.photoData[i].keyData[k].key = 0f;
-                    }
-
-                    int rightKey = -1;
-                    for (int i = currentPhoto + 1; i < currentPhoto + lerpDistance; i++)
-                    {
-                        if (i < 0 || i >= photoData.photoData.Count-1)
-                            continue;
-                        if (photoData.photoData[i].keyData[k].isKey)
-                        {
-                            rightKey = i;
-                            break;
-                        }
-
-                        photoData.photoData[i].keyData[k].key = 0f;
-                    }
-
-                    if (leftKey != -1) LerpKeysAroundKey(leftKey, k);
-                    if (rightKey != -1) LerpKeysAroundKey(rightKey, k);
-                    UpdateTimelineTex();
-                }
+                TryToDeleteKey(currentPhoto, k);
 
             }, () =>
             {
@@ -302,8 +436,68 @@ public class Controller : MonoBehaviour
             });
             weightSliders.Add(weightSlider);
         }
+
+        // loading all json's
+        //List<AllPhotosData> datas = new List<AllPhotosData>();
+        photoData = new AllPhotosData();
         
-        string allDataPath = Path.Combine(folder, Path.GetFileName(folder)+".json");
+        foreach (var jsonPath in Directory.EnumerateFiles(folder))
+        {
+            string extention = Path.GetExtension(jsonPath);
+            if (extention != ".json")
+                continue;
+
+            string jsonData = File.ReadAllText(jsonPath);
+            var data = new AllPhotosData();
+            data = JsonUtility.FromJson<AllPhotosData>(jsonData);
+            //datas.Add(data);
+
+            foreach (var pData in data.photoData)
+            {
+                photoData.photoData.Add(pData);
+            }
+        }
+
+        photoData.photoData.Sort((x,y) =>
+            x.photoName.CompareTo(y.photoName));
+
+        foreach (var photoPath in Directory.EnumerateFiles(folder))
+        {
+            PhotoData newPhotoData = null;
+
+            string extention = Path.GetExtension(photoPath);
+
+            if (!(extention == ".jpg" || extention == ".png" || extention == ".jpeg"))
+                continue;
+            
+            string fileName = Path.GetFileNameWithoutExtension(photoPath);
+            if (photoData.photoData.FirstOrDefault((x) => x.photoName == fileName) != null)
+                continue;
+
+            newPhotoData = new PhotoData();
+            newPhotoData.photoPath = Path.GetFileName(photoPath);
+            newPhotoData.photoName = Path.GetFileNameWithoutExtension(photoPath);
+            newPhotoData.keyData = new List<KeyData>();
+
+            for (int k = 0; k < skinnedMeshRenderers[0].sharedMesh.blendShapeCount; k++)
+            {
+                string blendshapeName = skinnedMeshRenderers[0].sharedMesh.GetBlendShapeName(k);
+                if (newPhotoData.keyData.FirstOrDefault(key => key.name == blendshapeName) == null)
+                {
+                    var keyData = new KeyData();
+                    keyData.name = blendshapeName;
+                    keyData.key = 0f;
+                    keyData.isKey = false;
+                    newPhotoData.keyData.Add(keyData);
+                }
+            }
+
+            photoData.photoData.Add(newPhotoData);
+
+        }
+
+
+        /*string allDataPath = Path.Combine(folder, Path.GetFileName(folder)+".json");
         if (File.Exists(allDataPath))
         {
             photoData = JsonUtility.FromJson<AllPhotosData>(File.ReadAllText(allDataPath));
@@ -352,7 +546,7 @@ public class Controller : MonoBehaviour
                 photoData.photoData.Add(newPhotoData);
 
             }
-        }
+        }*/
 
         foreach (var photoPath in Directory.EnumerateFiles(folder))
         {
@@ -382,9 +576,22 @@ public class Controller : MonoBehaviour
             }
         }
 
-        timelineSlider.minValue = 0;
-        timelineSlider.maxValue = photoData.photoData.Count - 1;
-        timelineSlider.onValueChanged.AddListener((f) =>
+        //timeline.SetRange(0, photoData.photoData.Count - 1);
+        //timelineSlider.minValue = 0;
+        //timelineSlider.maxValue = photoData.photoData.Count - 1;
+        timeline.SetData(photoData);
+        timeline.OnValueChanged += () =>
+        {
+            currentPhoto = timeline.Value;
+            if (audioSource.clip != null)
+            {
+                float audioNormalizedTime = (float)currentPhoto / (float)(photoData.photoData.Count - 1);
+                audioSource.time = audioNormalizedTime * audioSource.clip.length;
+            }
+
+            SetCurrentPhoto();
+        };
+        /*timelineSlider.onValueChanged.AddListener((f) =>
         {
             currentPhoto = (int)f;
             if (audioSource.clip != null)
@@ -394,12 +601,56 @@ public class Controller : MonoBehaviour
             }
 
             SetCurrentPhoto();
-        });
-        UpdateTimelineTex();
+        });*/
+        //UpdateTimelineTex();
 
         SetFps();
 
 
+    }
+
+    void TryToDeleteKey(int frame, int key)
+    {
+        if (photoData.photoData[frame].keyData[key].isKey)
+        {
+            photoData.photoData[frame].keyData[key].isKey = false;
+            photoData.photoData[frame].keyData[key].key = 0f;
+            weightSliders[key].Set(false);
+
+            int leftKey = -1;
+            for (int i = frame - 1; i >= frame - lerpDistance; i--)
+            {
+                if (i < 0 || i >= photoData.photoData.Count-1)
+                    continue;
+                if (photoData.photoData[i].keyData[key].isKey)
+                {
+                    leftKey = i;
+                    break;
+                }
+
+                photoData.photoData[i].keyData[key].key = 0f;
+            }
+
+            int rightKey = -1;
+            for (int i = frame + 1; i < frame + lerpDistance; i++)
+            {
+                if (i < 0 || i >= photoData.photoData.Count-1)
+                    continue;
+                if (photoData.photoData[i].keyData[key].isKey)
+                {
+                    rightKey = i;
+                    break;
+                }
+
+                photoData.photoData[i].keyData[key].key = 0f;
+            }
+
+            if (leftKey != -1) LerpKeysAroundKey(leftKey, key);
+            if (rightKey != -1) LerpKeysAroundKey(rightKey, key);
+                    
+            timeline.Redraw();
+            //UpdateTimelineTex();
+        }
     }
 
     void LerpKeysAroundKey(int keyNum, int lineNum)
@@ -461,7 +712,7 @@ public class Controller : MonoBehaviour
         }
     }
 
-    void UpdateTimelineTex()
+    /*void UpdateTimelineTex()
     {
         if (timelineTex == null)
         {
@@ -494,7 +745,7 @@ public class Controller : MonoBehaviour
         timelineTex.SetPixels(timelineTexColors);
         timelineTex.Apply();
         
-    }
+    }*/
 
     public static void GenerateMaxScriptWithMorphs(string path, AllPhotosData photosData)
     {
@@ -588,4 +839,9 @@ public class PhotoData
 public class AllPhotosData
 {
     public List<PhotoData> photoData;
+
+    public AllPhotosData()
+    {
+        photoData = new List<PhotoData>();
+    }
 }

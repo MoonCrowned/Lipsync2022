@@ -313,10 +313,8 @@ MonoBehaviour:
   modelHolder: {fileID: 1443220366}
   rawImage: {fileID: 499484857}
   rawImageAspectRatioFitter: {fileID: 499484859}
-  timelineImage: {fileID: 663251512}
-  timelineTex: {fileID: 0}
+  timeline: {fileID: 663251514}
   saveButton: {fileID: 1927766896}
-  timelineSlider: {fileID: 2053546138}
   lerpDistance: 15
   frameNumberText: {fileID: 1956128810}
   currentTexture: {fileID: 0}
@@ -472,7 +470,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -868,6 +866,7 @@ GameObject:
   - component: {fileID: 663251511}
   - component: {fileID: 663251513}
   - component: {fileID: 663251512}
+  - component: {fileID: 663251514}
   m_Layer: 5
   m_Name: Timeline
   m_TagString: Untagged
@@ -931,6 +930,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 663251510}
   m_CullTransparentMesh: 1
+--- !u!114 &663251514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 663251510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8815f4df3ce4172a3f81a0b0d99f75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  emptyColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
+  frameLineColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
+  cursorColor: {r: 1, g: 1, b: 1, a: 1}
+  keyColor: {r: 0.92264986, g: 0, b: 1, a: 1}
+  selectionLineColor: {r: 1, g: 0, b: 0, a: 1}
+  selectionFillColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -3434,7 +3451,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2053546137
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3543,7 +3560,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}

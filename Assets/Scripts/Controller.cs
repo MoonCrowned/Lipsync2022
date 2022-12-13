@@ -301,9 +301,9 @@ public class Controller : MonoBehaviour
     {
         //if (Input.GetKey(KeyCode.Z))
         {
-            if (Input.GetKeyDown(KeyCode.LeftBracket))
-                NextPhoto();
             if (Input.GetKeyDown(KeyCode.RightBracket))
+                NextPhoto();
+            if (Input.GetKeyDown(KeyCode.LeftBracket))
                 PreviousPhoto();
         }
 
@@ -447,6 +447,8 @@ public class Controller : MonoBehaviour
             if (extention != ".json")
                 continue;
 
+            Debug.Log(jsonPath);
+            
             string jsonData = File.ReadAllText(jsonPath);
             var data = new AllPhotosData();
             data = JsonUtility.FromJson<AllPhotosData>(jsonData);
@@ -454,13 +456,19 @@ public class Controller : MonoBehaviour
 
             foreach (var pData in data.photoData)
             {
-                photoData.photoData.Add(pData);
+                var existingData = photoData.photoData.FirstOrDefault((x) => x.photoName == pData.photoName);
+                if (existingData != null)
+                {
+                    existingData.keyData = pData.keyData;
+                }
+                else
+                {
+                    photoData.photoData.Add(pData);
+                }
             }
         }
 
-        photoData.photoData.Sort((x,y) =>
-            x.photoName.CompareTo(y.photoName));
-
+        
         foreach (var photoPath in Directory.EnumerateFiles(folder))
         {
             PhotoData newPhotoData = null;
@@ -494,7 +502,10 @@ public class Controller : MonoBehaviour
 
             photoData.photoData.Add(newPhotoData);
 
-        }
+        }//*/
+        
+        photoData.photoData.Sort((x,y) =>
+            x.photoName.CompareTo(y.photoName));    
 
 
         /*string allDataPath = Path.Combine(folder, Path.GetFileName(folder)+".json");

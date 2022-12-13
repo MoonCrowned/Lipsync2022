@@ -126,7 +126,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             }
         }
 
-        if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Alpha1) && pointerInside)
+        if (Input.GetKeyDown(KeyCode.LeftBracket) && pointerInside)
         {
             selectionFrame1 = Value;
             if (selectionFrame2 < 0)
@@ -134,7 +134,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             Redraw();
         }
 
-        if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Alpha2) && pointerInside)
+        if (Input.GetKeyDown(KeyCode.RightBracket) && pointerInside)
         {
             selectionFrame2 = Value;
             if (selectionFrame1 < 0)
@@ -160,19 +160,15 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             }
         }
 
+        int moveDelta = 0;
+        if (Input.GetKeyDown(KeyCode.Comma))
+            moveDelta = -1;
+
+        if (Input.GetKeyDown(KeyCode.Period))
+            moveDelta = 1;
+        
         if (Input.GetKey(KeyCode.A))
         {
-            int moveDelta = 0;
-            if (Input.GetKeyDown(KeyCode.Alpha1))
-            {
-                moveDelta = -1;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Alpha2))
-            {
-                moveDelta = 1;
-            }
-
             if (Input.GetMouseButton(0))
             {
                 float frameClicked = (Input.mousePosition.x / pixelsPerFrame) + startFrame;
@@ -196,47 +192,48 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                     }
                 }
             }
+            
+        }
+        
+        if (moveDelta != 0)
+        {
 
-            if (moveDelta != 0)
+            int s1 = Mathf.Min(selectionFrame1, selectionFrame2);
+            int s2 = Mathf.Max(selectionFrame1, selectionFrame2);
+
+            selectionFrame1 += moveDelta;
+            selectionFrame2 += moveDelta;
+            if (Mathf.Min(selectionFrame1, selectionFrame2) < 0)
             {
-
-                int s1 = Mathf.Min(selectionFrame1, selectionFrame2);
-                int s2 = Mathf.Max(selectionFrame1, selectionFrame2);
-
-                selectionFrame1 += moveDelta;
-                selectionFrame2 += moveDelta;
-                if (Mathf.Min(selectionFrame1, selectionFrame2) < 0)
-                {
-                    int backDelta = Mathf.Min(selectionFrame1, selectionFrame2);
-                    selectionFrame1 -= backDelta;
-                    selectionFrame2 -= backDelta;
-                    moveDelta -= backDelta;
-                }
-
-                if (Mathf.Max(selectionFrame1, selectionFrame2) >= photosData.photoData.Count)
-                {
-                    int backDelta = Mathf.Max(selectionFrame1, selectionFrame2) - photosData.photoData.Count -
-                                    1;
-                    selectionFrame1 -= backDelta;
-                    selectionFrame2 -= backDelta;
-                    moveDelta -= backDelta;
-                }
-
-                Redraw();
-
-                //Debug.Log("Move " + s1 + " " + s2 + " " + moveDelta);
-                OnMoveSelection?.Invoke(s1, s2, moveDelta);
-
-                //Debug.Log(deltaInt);
-
+                int backDelta = Mathf.Min(selectionFrame1, selectionFrame2);
+                selectionFrame1 -= backDelta;
+                selectionFrame2 -= backDelta;
+                moveDelta -= backDelta;
             }
 
-            if (Input.GetKeyDown(KeyCode.D))
+            if (Mathf.Max(selectionFrame1, selectionFrame2) >= photosData.photoData.Count)
             {
-                if (selectionFrame1 >= 0 && selectionFrame2 >= 0)
-                {
-                    OnDelete?.Invoke(Mathf.Min(selectionFrame1, selectionFrame2), Mathf.Max(selectionFrame1, selectionFrame2));
-                }
+                int backDelta = Mathf.Max(selectionFrame1, selectionFrame2) - photosData.photoData.Count -
+                                1;
+                selectionFrame1 -= backDelta;
+                selectionFrame2 -= backDelta;
+                moveDelta -= backDelta;
+            }
+
+            Redraw();
+
+            //Debug.Log("Move " + s1 + " " + s2 + " " + moveDelta);
+            OnMoveSelection?.Invoke(s1, s2, moveDelta);
+
+            //Debug.Log(deltaInt);
+
+        }
+        
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            if (selectionFrame1 >= 0 && selectionFrame2 >= 0)
+            {
+                OnDelete?.Invoke(Mathf.Min(selectionFrame1, selectionFrame2), Mathf.Max(selectionFrame1, selectionFrame2));
             }
         }
 

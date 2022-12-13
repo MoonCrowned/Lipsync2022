@@ -45,6 +45,8 @@ public class Controller : MonoBehaviour
     public int playFps;
     private bool isPlaying;
     private float playingLastFrameTime;
+
+    public Dictionary<string, Texture2D> texRepo;
     
 
     public AudioSource audioSource;
@@ -63,6 +65,7 @@ public class Controller : MonoBehaviour
         timeline.OnCopy += OnTimelineCopy;
         timeline.OnPaste += OnTimelinePaste;
         timeline.OnDelete += OnDeleteTimelineSelection;
+        texRepo = new Dictionary<string, Texture2D>();
     }
 
     private void OnTimelinePaste(int pasteFrame)
@@ -100,7 +103,7 @@ public class Controller : MonoBehaviour
             }
         }
         
-        timeline.SetSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count);
+        timeline.SetSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count-1);
         
         timeline.Redraw();
     }
@@ -117,15 +120,28 @@ public class Controller : MonoBehaviour
         }
         
         // Delete
+
+        List<(int, int)> keysToDelete = new List<(int, int)>();
+        
         for (int f = f1; f <= f2; f++)
         {
             for (int b = 0; b < photoData.photoData[f].keyData.Count; b++)
             {
                 if (photoData.photoData[f].keyData[b].isKey)
                 {
-                    TryToDeleteKey(f,b);
+                    keysToDelete.Add((f,b));
+                    photoData.photoData[f].keyData[b].isKey = false;
+                    //TryToDeleteKey(f,b);
                 }
+
+                photoData.photoData[f].keyData[b].key = 0f;
             }
+        }
+
+        foreach (var tuple in keysToDelete)
+        {
+            if( Mathf.Abs(f1-tuple.Item1)<=lerpDistance || Mathf.Abs(f2-tuple.Item1)<=lerpDistance)
+                TryToDeleteKey(tuple.Item1, tuple.Item2, true);
         }
         
         timeline.Redraw();
@@ -158,14 +174,21 @@ public class Controller : MonoBehaviour
             }
             copyBuffer.photoData.Add(newPhotoData);
         }
-        Debug.Log("Copied frames from "+f1+" to "+f2);
+        //Debug.Log("Copied frames from "+f1+" to "+f2);
     }
 
     private void OnMoveTimelineSelection(int f1, int f2, int delta)
     {
         if (delta == 0)
             return;
-        if (delta > 0)
+
+        var tempCopy = copyBuffer;
+        OnTimelineCopy(f1, f2);
+        OnDeleteTimelineSelection(f1, f2);
+        OnTimelinePaste(f1+delta);
+        copyBuffer = tempCopy;
+
+        /*if (delta > 0)
         {
             for (int f = f2; f >= f1; f--)
             {
@@ -216,7 +239,7 @@ public class Controller : MonoBehaviour
                 }
             }
             timeline.Redraw();
-        }
+        }*/
     }
 
     void SetFps()
@@ -302,9 +325,9 @@ public class Controller : MonoBehaviour
     {
         //if (Input.GetKey(KeyCode.Z))
         {
-            if (Input.GetKeyDown(KeyCode.RightBracket))
+            if (Input.GetKeyDown(KeyCode.Alpha2))
                 NextPhoto();
-            if (Input.GetKeyDown(KeyCode.LeftBracket))
+            if (Input.GetKeyDown(KeyCode.Alpha1))
                 PreviousPhoto();
         }
 
@@ -355,7 +378,8 @@ public class Controller : MonoBehaviour
         if (photoData.photoData.Count == 0)
             return;
 
-        timeline.Value = currentPhoto;
+        //if( !isPlaying )
+            timeline.Value = currentPhoto;
         //timelineSlider.SetValueWithoutNotify((float)currentPhoto);
         //timelineSlider.value = (float)currentPhoto;
         frameNumberText.text = "" + currentPhoto;
@@ -363,6 +387,7 @@ public class Controller : MonoBehaviour
         string photoPath = Path.Combine(folder, photoData.photoData[currentPhoto].photoPath);
         currentTexture = (new Texture2D(1, 1, TextureFormat.RGBA32, false));
         currentTexture.LoadImage(File.ReadAllBytes(photoPath));
+        //currentTexture = texRepo[photoData.photoData[currentPhoto].photoName];
         rawImage.texture = currentTexture;
 
         rawImageAspectRatioFitter.aspectRatio = (float)currentTexture.width / (float)currentTexture.height;
@@ -465,6 +490,9 @@ public class Controller : MonoBehaviour
                 else
                 {
                     photoData.photoData.Add(pData);
+                    //Texture2D tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                    //tex.LoadImage(File.ReadAllBytes(Path.Combine(folder, pData.photoPath)));
+                    //texRepo.Add(pData.photoName, tex);
                 }
             }
         }
@@ -621,9 +649,9 @@ public class Controller : MonoBehaviour
 
     }
 
-    void TryToDeleteKey(int frame, int key)
+    void TryToDeleteKey(int frame, int key, bool force = false)
     {
-        if (photoData.photoData[frame].keyData[key].isKey)
+        if (photoData.photoData[frame].keyData[key].isKey || force)
         {
             photoData.photoData[frame].keyData[key].isKey = false;
             photoData.photoData[frame].keyData[key].key = 0f;

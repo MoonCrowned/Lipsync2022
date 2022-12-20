@@ -65,6 +65,11 @@ public class Controller : MonoBehaviour
         timeline.OnCopy += (i1, i2) => copyBuffer = OnTimelineCopy(i1,i2);
         timeline.OnPaste += (i) => OnTimelinePaste(i, copyBuffer);
         timeline.OnDelete += OnDeleteTimelineSelection;
+        timeline.OnSelectionChanged += (i1, i2) =>
+        {
+            lastMoveCopySize = -1;
+            //Debug.Log("OnSelectionChanged");
+        };
         texRepo = new Dictionary<string, Texture2D>();
     }
 
@@ -202,6 +207,7 @@ public class Controller : MonoBehaviour
         int copySize = f2 - f1;
         if (copySize != lastMoveCopySize)
         {
+            //Debug.Log("copy");
             moveCopyBuffer = OnTimelineCopy(f1, f2);
             lastMoveCopySize = copySize;
         }

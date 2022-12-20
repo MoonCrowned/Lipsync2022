@@ -29,6 +29,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     public event Action<int> OnPaste;
     public event Action<int, int, int> OnMoveSelection;
     public event Action<int, int> OnDelete;
+    public event Action<int, int> OnSelectionChanged;
 
 
     private int frame;
@@ -152,6 +153,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             if (selectionFrame2 < 0)
                 selectionFrame2 = selectionFrame1;
             RedrawAll();
+            OnSelectionChanged?.Invoke(selectionFrame1, selectionFrame2);
         }
 
         if (Input.GetKeyDown(KeyCode.RightBracket) && pointerInside)
@@ -160,6 +162,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             if (selectionFrame1 < 0)
                 selectionFrame1 = selectionFrame2;
             RedrawAll();
+            OnSelectionChanged?.Invoke(selectionFrame1, selectionFrame2);
         }
 
         if (Input.GetKey(KeyCode.LeftControl) && pointerInside)
@@ -168,6 +171,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             {
                 selectionFrame1 = selectionFrame2 = Value;
                 RedrawAll();
+                OnSelectionChanged?.Invoke(selectionFrame1, selectionFrame2);
             }
 
             if (Input.GetMouseButton(0))
@@ -176,6 +180,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 {
                     selectionFrame2 = Value;
                     RedrawAll();
+                    OnSelectionChanged?.Invoke(selectionFrame1, selectionFrame2);
                 }
             }
         }

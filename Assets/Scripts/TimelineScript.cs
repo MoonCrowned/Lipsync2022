@@ -9,7 +9,14 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 {
     private Texture2D tex;
     private Color[] colors;
+    private Color[] colorsEmpty;
     RawImage rawImage;
+
+    private Texture2D texTimepoint;
+    private Color[] colorsTimepoint;
+    private Color[] colorsTimepointEmpty;
+    public RawImage rawImageTimepoint;
+    
     private RectTransform rt;
 
     private int oldSizeX = 1;
@@ -31,8 +38,11 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         get { return frame; }
         set
         {
-            frame = value;
-            Redraw();
+            if (frame != value)
+            {
+                frame = value;
+                RedrawTimepoint();
+            }
         }
     }
 
@@ -69,9 +79,20 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 
         tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
         colors = tex.GetPixels();
-        oldSizeX = Screen.width;
+        colorsEmpty = tex.GetPixels();
+        for (int k = 0; k < colorsEmpty.Length; k++)
+            colorsEmpty[k] = emptyColor;
         rawImage.texture = tex;
-        Redraw();
+        
+        texTimepoint = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        colorsTimepoint = texTimepoint.GetPixels();
+        colorsTimepointEmpty = tex.GetPixels();
+        for (int k = 0; k < colorsTimepointEmpty.Length; k++)
+            colorsTimepointEmpty[k] = Color.clear;
+        rawImageTimepoint.texture = texTimepoint;
+        
+        oldSizeX = Screen.width;
+        RedrawAll();
     }
 
     private void Update()
@@ -96,21 +117,20 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 
             //startFrame -= (Input.mousePosition.x/oldPixelsPerFrame) * (pixelsPerFrame / oldPixelsPerFrame);
 
-            Redraw();
+            RedrawAll();
         }
 
         if (Input.GetMouseButton(0) && pointerInside)
         {
             float pointerFrame = Input.mousePosition.x / pixelsPerFrame + startFrame;
             int newFrame = Mathf.RoundToInt(pointerFrame);
+            if (newFrame < 0)
+                newFrame = 0;
+            if (newFrame >= photosData.photoData.Count)
+                newFrame = photosData.photoData.Count - 1;
             if (newFrame != Value)
             {
                 Value = newFrame;
-                if (Value < 0)
-                    Value = 0;
-                if (Value >= photosData.photoData.Count)
-                    Value = photosData.photoData.Count - 1;
-                Redraw();
                 OnValueChanged?.Invoke();
             }
         }
@@ -122,7 +142,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             if (delta.x != 0f)
             {
                 startFrame -= delta.x / pixelsPerFrame;
-                Redraw();
+                RedrawAll();
             }
         }
 
@@ -131,7 +151,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             selectionFrame1 = Value;
             if (selectionFrame2 < 0)
                 selectionFrame2 = selectionFrame1;
-            Redraw();
+            RedrawAll();
         }
 
         if (Input.GetKeyDown(KeyCode.RightBracket) && pointerInside)
@@ -139,7 +159,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             selectionFrame2 = Value;
             if (selectionFrame1 < 0)
                 selectionFrame1 = selectionFrame2;
-            Redraw();
+            RedrawAll();
         }
 
         if (Input.GetKey(KeyCode.LeftControl) && pointerInside)
@@ -147,7 +167,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             if (Input.GetMouseButtonDown(0))
             {
                 selectionFrame1 = selectionFrame2 = Value;
-                Redraw();
+                RedrawAll();
             }
 
             if (Input.GetMouseButton(0))
@@ -155,7 +175,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 if (selectionFrame2 != Value)
                 {
                     selectionFrame2 = Value;
-                    Redraw();
+                    RedrawAll();
                 }
             }
         }
@@ -220,7 +240,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 moveDelta -= backDelta;
             }
 
-            Redraw();
+            RedrawAll();
 
             //Debug.Log("Move " + s1 + " " + s2 + " " + moveDelta);
             OnMoveSelection?.Invoke(s1, s2, moveDelta);
@@ -240,7 +260,7 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             selectionFrame1 = selectionFrame2 = -100000;
-            Redraw();
+            RedrawAll();
         }
 
         if (selectionFrame1 >= 0 && selectionFrame2 >= 0 && Input.GetKeyDown(KeyCode.C))
@@ -261,13 +281,13 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         selectionFrame1 = f1;
         selectionFrame2 = f2;
-        Redraw();
+        RedrawAll();
     }
 
     public void SetData(AllPhotosData photosData)
     {
         this.photosData = photosData;
-        Redraw();
+        RedrawAll();
     }
     
     /*public void SetFrame(int currentPhoto)
@@ -276,13 +296,14 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     }*/
 
     
-    public void Redraw()
+    public void RedrawAll()
     {
-        //Debug.Log("Redraw");
+        //Debug.Log("RedrawAll");
         
         // Clear
-        for (int k = 0; k < colors.Length; k++)
-            colors[k] = emptyColor;
+        //for (int k = 0; k < colors.Length; k++)
+        //    colors[k] = emptyColor;
+        Array.Copy(colorsEmpty, colors, colors.Length);
 
         if (photosData != null)
         {
@@ -356,21 +377,42 @@ public class TimelineScript : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             
             // Selection
             RedrawSelection();
-            
-            // CurrentFrame
-            int currentFrameX = Mathf.RoundToInt(((float)Value - startFrame) * (float)pixelsPerFrame);
-            if (currentFrameX >= 0 && currentFrameX < tex.width)
-            {
-                for (int y = 0; y < tex.height; y++)
-                {
-                    colors[currentFrameX + y * tex.width] = cursorColor;
-                }
-            }
 
         }
         
         tex.SetPixels(colors);
         tex.Apply();
+
+        RedrawTimepoint();
+
+    }
+    
+    public void RedrawTimepoint()
+    {
+        
+        //Debug.Log("RedrawTimepoint");
+        
+        // Clear
+        //for (int k = 0; k < colorsTimepoint.Length; k++)
+        //    colorsTimepoint[k] = Color.clear;
+        Array.Copy(colorsTimepointEmpty, colorsTimepoint, colorsTimepoint.Length);
+
+        if (photosData != null)
+        {
+            // CurrentFrame
+            int currentFrameX = Mathf.RoundToInt(((float)Value - startFrame) * (float)pixelsPerFrame);
+            if (currentFrameX >= 0 && currentFrameX < texTimepoint.width)
+            {
+                for (int y = 0; y < texTimepoint.height; y++)
+                {
+                    colorsTimepoint[currentFrameX + y * texTimepoint.width] = cursorColor;
+                }
+            }
+
+        }
+        
+        texTimepoint.SetPixels(colorsTimepoint);
+        texTimepoint.Apply();
 
     }
 

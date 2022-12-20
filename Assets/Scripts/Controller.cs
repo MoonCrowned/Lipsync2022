@@ -62,39 +62,46 @@ public class Controller : MonoBehaviour
         });
         playButton.onClick.AddListener(() => OnPlayPressed());
         timeline.OnMoveSelection += OnMoveTimelineSelection;
-        timeline.OnCopy += OnTimelineCopy;
-        timeline.OnPaste += OnTimelinePaste;
+        timeline.OnCopy += (i1, i2) => copyBuffer = OnTimelineCopy(i1,i2);
+        timeline.OnPaste += (i) => OnTimelinePaste(i, copyBuffer);
         timeline.OnDelete += OnDeleteTimelineSelection;
         texRepo = new Dictionary<string, Texture2D>();
     }
 
-    private void OnTimelinePaste(int pasteFrame)
+    private void OnTimelinePaste(int pasteFrame, AllPhotosData bufferToPaste)
     {
-        if (copyBuffer == null)
+        if (bufferToPaste == null)
         {
             Debug.Log("No copy made. Select area and press C");
             return;
         }
 
-        OnDeleteTimelineSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count);
+        OnDeleteTimelineSelection(pasteFrame, pasteFrame + bufferToPaste.photoData.Count);
         
         // Paste
-        for (int f = 0; f < copyBuffer.photoData.Count; f++)
+        for (int f = 0; f < bufferToPaste.photoData.Count; f++)
         {
-            for (int b = 0; b < copyBuffer.photoData[f].keyData.Count; b++)
+            if( (f + pasteFrame) < 0 || (f+pasteFrame)>=photoData.photoData.Count )
+                continue;
+            for (int b = 0; b < bufferToPaste.photoData[f].keyData.Count; b++)
             {
-                if (copyBuffer.photoData[f].keyData[b].isKey)
+                //if (copyBuffer.photoData[f].keyData[b].key)
                 {
-                    photoData.photoData[f + pasteFrame].keyData[b].isKey = copyBuffer.photoData[f].keyData[b].isKey;
-                    photoData.photoData[f + pasteFrame].keyData[b].key = copyBuffer.photoData[f].keyData[b].key;
+                    photoData.photoData[f + pasteFrame].keyData[b].isKey = bufferToPaste.photoData[f].keyData[b].isKey;
+                    photoData.photoData[f + pasteFrame].keyData[b].key = bufferToPaste.photoData[f].keyData[b].key;
                 }
             }
         }
         
         // Lerp
-        for (int f = 0; f < copyBuffer.photoData.Count; f++)
+        for (int f = 0; f < bufferToPaste.photoData.Count; f++)
         {
-            for (int b = 0; b < copyBuffer.photoData[f].keyData.Count; b++)
+            if( (f + pasteFrame) < 0 || (f+pasteFrame)>=photoData.photoData.Count )
+                continue;
+            if ((f+pasteFrame) > (Mathf.Max(pasteFrame, 0) + lerpDistance) && (f+pasteFrame) <
+                (Mathf.Min(pasteFrame + bufferToPaste.photoData.Count, photoData.photoData.Count - 1) - lerpDistance))
+                continue;
+            for (int b = 0; b < bufferToPaste.photoData[f].keyData.Count; b++)
             {
                 if (photoData.photoData[f+pasteFrame].keyData[b].isKey)
                 {
@@ -103,15 +110,21 @@ public class Controller : MonoBehaviour
             }
         }
         
-        timeline.SetSelection(pasteFrame, pasteFrame + copyBuffer.photoData.Count-1);
+        timeline.SetSelection(pasteFrame, pasteFrame + bufferToPaste.photoData.Count-1);
         
-        timeline.Redraw();
+        timeline.RedrawAll();
     }
 
     public void OnDeleteTimelineSelection(int f1, int f2)
     {
-        if (f1 < 0 || f2 < 0 || f1 >= photoData.photoData.Count || f2 >= photoData.photoData.Count)
-            return;
+        if (f1 < 0)
+            f1 = 0;
+        if (f2 < 0)
+            f2 = 0;
+        if (f1 >= photoData.photoData.Count)
+            f1 = photoData.photoData.Count - 1;
+        if (f2 >= photoData.photoData.Count)
+            f2 = photoData.photoData.Count - 1;
         if (f1 > f2)
         {
             int t = f2;
@@ -144,23 +157,23 @@ public class Controller : MonoBehaviour
                 TryToDeleteKey(tuple.Item1, tuple.Item2, true);
         }
         
-        timeline.Redraw();
+        timeline.RedrawAll();
         
     }
 
-    private AllPhotosData copyBuffer;
-    private void OnTimelineCopy(int f1, int f2)
+    private AllPhotosData copyBuffer, moveCopyBuffer;
+    private AllPhotosData OnTimelineCopy(int f1, int f2)
     {
         if (f1 < 0 || f2 < 0 || f1 >= photoData.photoData.Count || f2 >= photoData.photoData.Count)
-            return;
+            return null;
         if (f1 > f2)
         {
             int t = f2;
             f2 = f1;
             f2 = t;
         }
-        copyBuffer = new AllPhotosData();
-        copyBuffer.photoData = new List<PhotoData>();
+        var bufferToCopy = new AllPhotosData();
+        bufferToCopy.photoData = new List<PhotoData>();
         for (int f = f1; f <= f2; f++)
         {
             var newPhotoData = new PhotoData();
@@ -172,21 +185,29 @@ public class Controller : MonoBehaviour
                 newKeyData.key = photoData.photoData[f].keyData[b].key;
                 newPhotoData.keyData.Add(newKeyData);
             }
-            copyBuffer.photoData.Add(newPhotoData);
+            bufferToCopy.photoData.Add(newPhotoData);
         }
+
+        return bufferToCopy;
         //Debug.Log("Copied frames from "+f1+" to "+f2);
     }
 
+    private int lastMoveCopySize = -1;
+    
     private void OnMoveTimelineSelection(int f1, int f2, int delta)
     {
         if (delta == 0)
             return;
 
-        var tempCopy = copyBuffer;
-        OnTimelineCopy(f1, f2);
+        int copySize = f2 - f1;
+        if (copySize != lastMoveCopySize)
+        {
+            moveCopyBuffer = OnTimelineCopy(f1, f2);
+            lastMoveCopySize = copySize;
+        }
+
         OnDeleteTimelineSelection(f1, f2);
-        OnTimelinePaste(f1+delta);
-        copyBuffer = tempCopy;
+        OnTimelinePaste(f1+delta, moveCopyBuffer);
 
         /*if (delta > 0)
         {
@@ -379,7 +400,7 @@ public class Controller : MonoBehaviour
             return;
 
         //if( !isPlaying )
-            timeline.Value = currentPhoto;
+        timeline.Value = currentPhoto;
         //timelineSlider.SetValueWithoutNotify((float)currentPhoto);
         //timelineSlider.value = (float)currentPhoto;
         frameNumberText.text = "" + currentPhoto;
@@ -437,7 +458,7 @@ public class Controller : MonoBehaviour
                 LerpKeysAroundKey(currentPhoto, k);
 
                 //UpdateTimelineTex();
-                timeline.Redraw();
+                timeline.RedrawAll();
 
             }, () =>
             {
@@ -688,7 +709,7 @@ public class Controller : MonoBehaviour
             if (leftKey != -1) LerpKeysAroundKey(leftKey, key);
             if (rightKey != -1) LerpKeysAroundKey(rightKey, key);
                     
-            timeline.Redraw();
+            //timeline.RedrawAll();
             //UpdateTimelineTex();
         }
     }

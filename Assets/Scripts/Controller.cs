@@ -299,8 +299,9 @@ public class Controller : MonoBehaviour
             if (audioSource.clip != null)
             {
                 float audioNormalizedTime = (float)currentPhoto / (float)(photoData.photoData.Count - 1);
+                audioSource.time = Mathf.Clamp(audioNormalizedTime * audioSource.clip.length, 0f, audioSource.clip.length-0.05f);
                 audioSource.Play();
-                audioSource.time = audioNormalizedTime * audioSource.clip.length;
+                
             }
         }
     }

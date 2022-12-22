@@ -470,7 +470,7 @@ public class Controller : MonoBehaviour
             }, () =>
             {
                 TryToDeleteKey(currentPhoto, k);
-
+                timeline.RedrawAll();
             }, () =>
             {
                 for (int i = 0; i < skinnedMeshRenderers[0].sharedMesh.blendShapeCount; i++)
@@ -658,6 +658,11 @@ public class Controller : MonoBehaviour
             }
 
             SetCurrentPhoto();
+
+            if (isPlaying)
+            {
+                OnPlayPressed();
+            }
         };
         /*timelineSlider.onValueChanged.AddListener((f) =>
         {

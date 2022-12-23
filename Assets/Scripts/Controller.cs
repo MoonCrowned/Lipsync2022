@@ -423,7 +423,10 @@ public class Controller : MonoBehaviour
         for (int k = 0; k < photoData.photoData[currentPhoto].keyData.Count; k++)
         {
             foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
-                skinnedMeshRenderer.SetBlendShapeWeight(k, photoData.photoData[currentPhoto].keyData[k].key);
+            {
+                if( k<skinnedMeshRenderer.sharedMesh.blendShapeCount )
+                    skinnedMeshRenderer.SetBlendShapeWeight(k, photoData.photoData[currentPhoto].keyData[k].key);
+            }
             weightSliders[k].Set(photoData.photoData[currentPhoto].keyData[k].isKey,
                 photoData.photoData[currentPhoto].keyData[k].key);
         }
@@ -457,7 +460,12 @@ public class Controller : MonoBehaviour
             weightSlider.Init(skinnedMeshRenderers[0].sharedMesh.GetBlendShapeName(k), 0f,
                 (f) =>
             {
-                skinnedMeshRenderers[0].SetBlendShapeWeight(k, f);
+                //skinnedMeshRenderers[0].SetBlendShapeWeight(k, f);
+                foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                {
+                    if (k < skinnedMeshRenderer.sharedMesh.blendShapeCount)
+                        skinnedMeshRenderer.SetBlendShapeWeight(k, photoData.photoData[currentPhoto].keyData[k].key);
+                }
                 weightSlider.Set(true, f);
                 photoData.photoData[currentPhoto].keyData[k].isKey = true;
                 photoData.photoData[currentPhoto].keyData[k].key = f;

@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.18028305, g: 0.22571313, b: 0.3069213, a: 1}
+  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -309,7 +309,7 @@ MonoBehaviour:
   folder: 
   photoData:
     photoData: []
-  modelPrefab: {fileID: 8579547360282213384, guid: ae94029f35d0341b1ae207a81dba1d14, type: 3}
+  modelPrefab: {fileID: 8412293311798066478, guid: d3b80d36378d56f45b7358296f77eb86, type: 3}
   modelHolder: {fileID: 1443220366}
   rawImage: {fileID: 499484857}
   rawImageAspectRatioFitter: {fileID: 499484859}

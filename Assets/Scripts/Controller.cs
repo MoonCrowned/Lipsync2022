@@ -485,7 +485,8 @@ public class Controller : MonoBehaviour
                 {
                     weightSliders[i].Set(false, i==k?100f:0f );
                     foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
-                        skinnedMeshRenderer.SetBlendShapeWeight(i, i==k?100f:0f);
+                        if (i < skinnedMeshRenderer.sharedMesh.blendShapeCount)
+                            skinnedMeshRenderer.SetBlendShapeWeight(i, i==k?100f:0f);
                 }
             }, () => 
             {
@@ -493,7 +494,8 @@ public class Controller : MonoBehaviour
                 {
                     weightSliders[i].Set(photoData.photoData[currentPhoto].keyData[i].isKey, photoData.photoData[currentPhoto].keyData[i].key );
                     foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
-                        skinnedMeshRenderer.SetBlendShapeWeight(i, photoData.photoData[currentPhoto].keyData[i].key);
+                        if (i < skinnedMeshRenderer.sharedMesh.blendShapeCount)
+                            skinnedMeshRenderer.SetBlendShapeWeight(i, photoData.photoData[currentPhoto].keyData[i].key);
                 }
             });
             weightSliders.Add(weightSlider);

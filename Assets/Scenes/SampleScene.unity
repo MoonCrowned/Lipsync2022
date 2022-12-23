@@ -309,7 +309,7 @@ MonoBehaviour:
   folder: 
   photoData:
     photoData: []
-  modelPrefab: {fileID: 8412293311798066478, guid: d3b80d36378d56f45b7358296f77eb86, type: 3}
+  modelPrefab: {fileID: 1436207625178656071, guid: a33867284516216449c3934d3fc547c7, type: 3}
   modelHolder: {fileID: 1443220366}
   rawImage: {fileID: 499484857}
   rawImageAspectRatioFitter: {fileID: 499484859}
